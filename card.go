@@ -78,7 +78,7 @@ type Card struct {
 	Labels   []*Label `json:"labels,omitempty"`
 
 	// Custom Fields
-	CustomFieldItems []*CustomFieldItem	`json:"customFieldItems",omitempty`
+	CustomFieldItems []*CustomFieldItem `json:"customFieldItems",omitempty`
 
 	customFieldMap *map[string]interface{}
 }
@@ -88,18 +88,18 @@ func (c *Card) CreatedAt() time.Time {
 	return t
 }
 
-func (c *Card) CustomFields(boardCustomFields []*CustomField) (map[string]interface{}) {
+func (c *Card) CustomFields(boardCustomFields []*CustomField) map[string]interface{} {
 
 	cfm := c.customFieldMap
 
 	if cfm == nil {
-		cfm = &(map[string]interface{} {})
+		cfm = &(map[string]interface{}{})
 
 		// bcfOptionNames[CustomField ID] = Custom Field Name
 		bcfOptionNames := map[string]string{}
 
 		// bcfOptionsMap[CustomField ID][ID of the option] = Value of the option
-		bcfOptionsMap := map[string] map[string]interface{}{}
+		bcfOptionsMap := map[string]map[string]interface{}{}
 
 		for _, bcf := range boardCustomFields {
 			bcfOptionNames[bcf.ID] = bcf.Name
@@ -117,17 +117,33 @@ func (c *Card) CustomFields(boardCustomFields []*CustomField) (map[string]interf
 
 		for _, cf := range c.CustomFieldItems {
 			name := bcfOptionNames[cf.IDCustomField]
+			var value interface{}
 
-			// create 2nd level map when not available yet
-			map2, ok := bcfOptionsMap[cf.IDCustomField]
-			if !ok {
-				continue
+			if cf.Value != nil {
+				if cf.Value.Text != "" {
+					value = cf.Value.Text
+				}
+				if cf.Value.Number != "" {
+					value = cf.Value.Number
+				}
+				if cf.Value.Date != "" {
+					value = cf.Value.Date
+				}
+				if cf.Value.Checked != "" {
+					value = cf.Value.Checked
+				}
+			} else {
+				// create 2nd level map when not available yet
+				map2, ok := bcfOptionsMap[cf.IDCustomField]
+				if !ok {
+					continue
+				}
+				val, ok := map2[cf.IDValue]
+				if ok {
+					value = val
+				}
 			}
-			value, ok := map2[cf.IDValue]
-
-			if ok {
-				(*cfm)[name] = value
-			}
+			(*cfm)[name] = value
 		}
 		c.customFieldMap = cfm
 	}
